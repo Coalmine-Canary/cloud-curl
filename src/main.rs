@@ -1,5 +1,5 @@
 use aws_sigv4::http_request::{sign, SigningSettings, SigningParams, SignableRequest};
-use clap::{Parser,ValueEnum};
+use clap::{Parser, ValueEnum, Subcommand};
 use hyper::client::HttpConnector;
 use hyper::{Client, Request};
 use hyper_openssl::HttpsConnector;
@@ -10,6 +10,8 @@ use std::env;
 use std::process::exit;
 use std::time::SystemTime;
 use std::time::Duration;
+
+mod config;
 
 #[derive(ValueEnum, Clone)]
 enum Method {
@@ -24,8 +26,15 @@ enum Method {
 }
 
 #[derive(Parser)]
-#[command(version, about, long_about = None)]
+#[command(version, about, long_about = None, arg_required_else_help = true)]
 struct Args {
+    #[command(subcommand)]
+    subcommand: Option<Commands>
+}
+
+#[derive(Parser)]
+/// Send request with given args to endpoint
+struct RequestCommand {
     #[arg(short, long)]
     endpoint: String,
 
@@ -33,12 +42,18 @@ struct Args {
     method: Option<Method>,
 
     #[arg(short, long)]
-    body: Option<String>,
+    body: Option<String>
 }
 
-#[tokio::main]
-async fn main() {
-    let args = Args::parse();
+#[derive(Subcommand)]
+enum Commands {
+    #[command(name = "request")]
+	Request(RequestCommand),
+	#[command(name = "config", subcommand)]
+    Config(config::Commands) // or set and get
+}
+
+async fn request(args: RequestCommand) {
     let vars: HashMap<String, String> = env::vars().filter(|(key, _val)|
         match key.as_str() {
             "ACCESS_KEY"|"SECRET_KEY" => true,
@@ -106,4 +121,20 @@ async fn main() {
             eprintln!("Request failed. Error was {}", e);
         }
     };
+}
+
+
+#[tokio::main]
+async fn main() {
+    let args = Args::parse();
+
+    match args.subcommand {
+        Some(a) => {
+            match a {
+                Commands::Request(r) => { request(r).await },
+                Commands::Config(c)  => {}
+            }
+        },
+        None => {}
+    }
 }
