@@ -70,11 +70,13 @@ impl Settings {
                 Ok(f) => f,
                 Err(e) => { return Err(e.to_string()) }
             };
+
         let mut yaml = String::new();
         match file.read_to_string(&mut yaml) {
             Ok(y) => y,
             Err(e) => { return Err(e.to_string()) }
         };
+        
         match serde_yaml::from_str::<Self>(&yaml) {
             Ok(s) => Ok(s),
             Err(e) => Err(e.to_string())
