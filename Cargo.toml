@@ -1,5 +1,5 @@
 [package]
-name = "es_proxy"
+name = "cloud-curl"
 version = "0.1.0"
 edition = "2021"
 
