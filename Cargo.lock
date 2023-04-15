@@ -217,6 +217,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a2dd5a6fe8c6e3502f568a6353e5273bbb15193ad9a89e457b9970798efbea1"
 
 [[package]]
+name = "cloud-curl"
+version = "0.1.0"
+dependencies = [
+ "aws-sigv4",
+ "clap",
+ "futures",
+ "http",
+ "hyper",
+ "hyper-openssl",
+ "reqwest",
+ "serde",
+ "serde_yaml",
+ "tokio",
+]
+
+[[package]]
 name = "concolor-override"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -311,22 +327,6 @@ checksum = "aa68f1b12764fab894d2755d2518754e71b4fd80ecfb822714a1206c2aab39bf"
 dependencies = [
  "cc",
  "libc",
-]
-
-[[package]]
-name = "es_proxy"
-version = "0.1.0"
-dependencies = [
- "aws-sigv4",
- "clap",
- "futures",
- "http",
- "hyper",
- "hyper-openssl",
- "reqwest",
- "serde",
- "serde_yaml",
- "tokio",
 ]
 
 [[package]]
