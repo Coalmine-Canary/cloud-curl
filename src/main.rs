@@ -1,5 +1,5 @@
 use aws_sigv4::http_request::{sign, SigningSettings, SigningParams, SignableRequest};
-use clap::{Parser, ValueEnum, Subcommand};
+use clap::{Parser, ValueEnum, Args};
 use hyper::client::HttpConnector;
 use hyper::{Client, Request};
 use hyper_openssl::HttpsConnector;
@@ -27,30 +27,24 @@ enum Method {
 
 #[derive(Parser)]
 #[command(version, about, long_about = None, arg_required_else_help = true)]
-struct Args {
-    #[command(subcommand)]
-    subcommand: Option<Commands>
+enum Cli {
+    #[command(name = "request")]
+	Request(RequestCommand),
+	#[command(name = "config", subcommand)]
+    Config(config::Commands) // or set and get
 }
 
-#[derive(Parser)]
+#[derive(Args)]
 /// Send request with given args to endpoint
 struct RequestCommand {
     #[arg(short, long)]
-    endpoint: String,
+    endpoint: Option<String>,
 
     #[arg(short, long, value_enum)]
     method: Option<Method>,
 
     #[arg(short, long)]
     body: Option<String>
-}
-
-#[derive(Subcommand)]
-enum Commands {
-    #[command(name = "request")]
-	Request(RequestCommand),
-	#[command(name = "config", subcommand)]
-    Config(config::Commands) // or set and get
 }
 
 async fn request(args: RequestCommand) {
@@ -76,7 +70,7 @@ async fn request(args: RequestCommand) {
     // Create the request to sign
     let mut request: Request<String> = match Request::builder()
     .method(method) // TODO: add arg
-    .uri(args.endpoint)
+    .uri(args.endpoint.unwrap()) // TODO: fix
     .body(args.body.unwrap_or("".into())) {// TODO: add arg
         Ok(r) => r,
         Err(e) => {
@@ -111,7 +105,7 @@ async fn request(args: RequestCommand) {
                 Ok(b) => {
                     println!("{}", String::from_utf8(b.to_vec()).unwrap());
                 },
-                Err(e) => {
+                Err(_e) => {
                     eprintln!("Error: Failed to get bytes from response body. ")
                 }
             }
@@ -126,15 +120,14 @@ async fn request(args: RequestCommand) {
 
 #[tokio::main]
 async fn main() {
-    let args = Args::parse();
+    let args = Cli::parse();
 
-    match args.subcommand {
-        Some(a) => {
-            match a {
-                Commands::Request(r) => { request(r).await },
-                Commands::Config(c)  => {}
-            }
-        },
-        None => {}
-    }
+    match args {
+        Cli::Request(r) => { request(r).await },
+        Cli::Config(c)  => { 
+            match config::handle(c).await {
+                Ok(_) => {},
+                Err(e) => { println!("Error: {}", e) }
+        } }
+    }   
 }
