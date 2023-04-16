@@ -18,11 +18,11 @@ async fn main() {
     let args = Cli::parse();
 
     match args {
-        Cli::Request(r) => { request::request(r).await },
-        Cli::Config(c)  => { 
+        Cli::Request(r) => { request::handle(r).await },
+        Cli::Config(c)  => {
             match config::handle(c).await {
                 Ok(_) => {},
                 Err(e) => { println!("Error: {}", e) }
         } }
-    }   
+    }
 }

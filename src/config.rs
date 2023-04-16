@@ -1,17 +1,52 @@
+use std::collections::HashMap;
 use std::default::Default;
 use std::env;
 use std::fs::{OpenOptions, create_dir_all};
 use std::io::{Read, Write};
 use std::path::PathBuf;
+use std::sync::Mutex;
 
+use clap::{Subcommand, Args};
+use once_cell::sync::Lazy;
 use serde::{Serialize, Deserialize};
 use serde_yaml;
-use clap::{Subcommand, Args};
 
 const HOME_CONFIG_DIR: &str = ".config/cloud-curl";
 const SYSTEM_CONFIG_DIR: &str = "/etc/cloud-curl/";
 const CONFIG_FILE_NAME: &str = "config.yml";
 
+#[derive(Debug)]
+pub struct Env {
+    pub AWS_PROFILE: Option<String>,
+    pub ACCESS_KEY: Option<String>,
+    pub SECRET_KEY: Option<String>,
+    pub HOME: Option<String>
+}
+pub fn get_env() -> Env {
+    let mut vars: HashMap<String, String> = env::vars().collect();
+    let mut profile: Option<String> = None;
+    let mut access_key: Option<String> = None;
+    let mut secret_key: Option<String> = None;
+    let mut home: Option<String> = None;
+
+    vars.drain().for_each(|(key, val)|
+        match key.as_str() {
+            "AWS_PROFILE" => { profile.replace(val); }
+            "ACCESS_KEY"  => { access_key.replace(val); }
+            "SECRET_KEY"  => { secret_key.replace(val); }
+            "HOME"        => { home.replace(val); }
+            _ => {}
+        }
+    );
+
+    Env {
+        AWS_PROFILE: profile,
+        ACCESS_KEY: access_key,
+        SECRET_KEY: secret_key,
+        HOME: home
+    }
+}
+pub const ENV: Lazy<Env> = Lazy::new(||get_env());
 
 fn get_and_create_path() -> Result<PathBuf, String> {
     let mut path = PathBuf::new();
@@ -57,7 +92,6 @@ impl std::fmt::Display for Settings {
 
 impl Settings {
     fn read() -> Result<Self, String> {
-        
         let path = match get_and_create_path() {
             Ok(p) => p,
             Err(e) => return Err(e)
@@ -76,11 +110,11 @@ impl Settings {
             Ok(y) => y,
             Err(e) => { return Err(e.to_string()) }
         };
-        
+
         match serde_yaml::from_str::<Self>(&yaml) {
             Ok(s) => Ok(s),
             Err(e) => Err(e.to_string())
-        }       
+        }
     }
 
     fn output_fields(&self, flags: SettingsFlags) {
@@ -120,7 +154,7 @@ impl Settings {
                 Ok(f) => f,
                 Err(e) => { return Err(e.to_string()) }
             };
-        
+
         match file.write(yaml.as_bytes()) {
             Ok(_) => Ok(()),
             Err(e) => return Err(e.to_string())
