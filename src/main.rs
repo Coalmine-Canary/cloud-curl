@@ -2,6 +2,7 @@ use clap::Parser;
 
 mod config;
 mod request;
+mod auth;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None, arg_required_else_help = true)]
@@ -22,7 +23,7 @@ async fn main() {
         Cli::Config(c)  => {
             match config::handle(c).await {
                 Ok(_) => {},
-                Err(e) => { println!("Error: {}", e) }
+                Err(e) => { println!("{}", e) }
         } }
     }
 }

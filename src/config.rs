@@ -32,8 +32,8 @@ pub fn get_env() -> Env {
     vars.drain().for_each(|(key, val)|
         match key.as_str() {
             "AWS_PROFILE" => { profile.replace(val); }
-            "ACCESS_KEY"  => { access_key.replace(val); }
-            "SECRET_KEY"  => { secret_key.replace(val); }
+            "AWS_ACCESS_KEY_ID"  => { access_key.replace(val); }
+            "AWS_SECRET_ACCESS_KEY"  => { secret_key.replace(val); }
             "HOME"        => { home.replace(val); }
             _ => {}
         }
@@ -46,7 +46,7 @@ pub fn get_env() -> Env {
         HOME: home
     }
 }
-pub const ENV: Lazy<Env> = Lazy::new(||get_env());
+pub static ENV: Lazy<Env> = Lazy::new(||get_env());
 
 fn get_and_create_path() -> Result<PathBuf, String> {
     let mut path = PathBuf::new();

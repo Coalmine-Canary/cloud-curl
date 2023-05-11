@@ -3,22 +3,12 @@ use clap::{ValueEnum, Args};
 use hyper::client::HttpConnector;
 use hyper::{Client, Request};
 use hyper_openssl::HttpsConnector;
-use once_cell::sync::Lazy;
-use toml::Value;
-use toml::{Table, map::Map};
-
-use std::collections::HashMap;
-use std::env;
-use std::fs::File;
-use std::io::Read;
-use std::ops::Deref;
-use std::path::Path;
 //use std::thread::__FastLocalKeyInner;
 use std::process::exit;
 use std::time::SystemTime;
 use std::time::Duration;
 
-use crate::config;
+use crate::auth::get_credentials;
 
 #[derive(ValueEnum, Clone)]
 enum Method {
@@ -46,70 +36,6 @@ pub struct Commands {
 
     #[arg(short, long)]
     region: Option<String>
-}
-
-fn load_toml<P: AsRef<Path>>(path: P) -> Result<Option<Table>, String> {
-    if path.as_ref().exists() {
-        let mut toml = String::new();
-        let mut file = match File::open(path.as_ref()) {
-            Ok(f) => f,
-            Err(e) => { return Err(e.to_string()) }
-        };
-
-        match file.read_to_string(&mut toml) {
-            Ok(_) => {},
-            Err(e) => { return Err(e.to_string()) }
-        };
-
-        match toml.parse::<Table>() {
-            Ok(t) => return Ok(Some(t)),
-            Err(e) => { return Err(e.to_string()) }
-        }
-    }
-    Ok(None)
-}
-
-fn get_profile() {
-    //load_toml("")
-}
-
-fn get_credentials() -> Result<(String, String), String> {
-    // Checks environment variables and aws credentials file
-
-    let env_reference = &mut config::ENV;
-    let mut env = Lazy::get_mut(env_reference).unwrap();
-    let mut access_key = String::from(env.ACCESS_KEY.as_ref().unwrap_or(&"".into()));
-    let mut secret_key = String::from(env.SECRET_KEY.as_ref().unwrap_or(&"".into()));;
-    let profile = env.AWS_PROFILE.as_ref().unwrap_or(&"default".into()).clone();
-
-    if access_key == "" || secret_key == "" {
-        let home = match &env.HOME {
-            Some(h) => h,
-            None => { return Err("Could not find home directory. ".into()) }
-        };
-        let toml = match load_toml(format!("{}/{}", home, ".aws/credentials")) {
-            Ok(o) => match o {
-                Some(t) => t,
-                None => Map::new()
-            },
-            Err(e) => return Err(e)
-        };
-        match toml.get(&profile) {
-            Some(s) => {
-                match s {
-                    Value::Table(t) => {
-                        if t.get("aws_access_key_id").is_some() { access_key = t.get("aws_access_key_id").unwrap().to_string(); };
-                        if t.get("aws_secret_access_key").is_some() { secret_key = t.get("aws_secret_access_key").unwrap().to_string(); };
-                    },
-                    _ => {
-                        eprintln!("Warning: Invalid credentials file. ");
-                    }
-                }
-            },
-            None => {}
-        };
-    };
-    Ok((access_key, secret_key))
 }
 
 async fn sign_request(region: &str) {} // service_name, creds
