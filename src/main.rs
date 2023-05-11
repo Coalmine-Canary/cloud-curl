@@ -4,6 +4,8 @@ mod config;
 mod request;
 mod auth;
 
+mod aws;
+
 #[derive(Parser)]
 #[command(version, about, long_about = None, arg_required_else_help = true)]
 enum Cli {
