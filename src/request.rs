@@ -119,6 +119,4 @@ pub async fn handle(args: Commands) {
     let region = args.region.unwrap_or("us-east-1".into());
 
     request(endpoint, region, method, body).await
-
-
 }

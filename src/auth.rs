@@ -6,11 +6,13 @@ use toml::{Table, map::Map};
 
 use std::fs::File;
 use std::io::Read;
+use std::io::read_to_string;
 
 use std::path::Path;
 //use std::thread::__FastLocalKeyInner;
 
 use crate::config;
+use crate::aws::credentials;
 
 pub fn get_credentials() -> Result<(String, String), String> {
     // Checks environment variables and aws credentials file
@@ -27,59 +29,33 @@ pub fn get_credentials() -> Result<(String, String), String> {
     };
 
 
-//    eprintln!("Error: Missing ACCESS_KEY or SECRET_KEY. Please specify in environment variables. "); // TODO: Change when added args etc. 
+//    eprintln!("Error: Missing ACCESS_KEY or SECRET_KEY. Please specify in environment variables. "); // TODO: Change when added args etc.
 
     let home = match &env.HOME {
         Some(h) => h,
         None => { return Err("Could not find home directory. ".into()) }
     };
 
-    let toml = match load_toml(format!("{}/{}", home, ".aws/credentials")) {
-        Ok(o) => match o {
-            Some(t) => t,
-            None => Map::new()
-        },
-        Err(e) => return Err(e)
-    };
-    match toml.get(&profile) {
-        Some(s) => {
-            match s {
-                Value::Table(t) => {
-                    if t.get("aws_access_key_id").is_some() && t.get("aws_secret_access_key").is_some() {
-                        return Ok((t.get("aws_access_key_id").unwrap().to_string(), t.get("aws_secret_access_key").unwrap().to_string()))
-                    };
-                },
-                _ => {
-                    eprintln!("Warning: Invalid credentials file. ");
-                }
-            }
-        },
-        None => {}
-    };
-
-    return Err("could not determine credentials from environment variables and aws config. ".into())
-}
-
-fn load_toml<P: AsRef<Path>>(path: P) -> Result<Option<Table>, String> {
-    if path.as_ref().exists() {
-        let mut toml = String::new();
-        let mut file = match File::open(path.as_ref()) {
+    let path = format!("{}/{}", home, ".aws/credentials");
+    let file = match File::open(&path) {
             Ok(f) => f,
-            Err(e) => { return Err(e.to_string()) }
-        };
+            Err(e) => { return Err(format!("Failed to read aws credentials file ({}), error was: {}", path, e))}
+    };
 
-        match file.read_to_string(&mut toml) {
-            Ok(_) => {},
-            Err(e) => { return Err(e.to_string()) }
-        };
-        
-        match toml.parse::<Table>() {
-            Ok(t) => return Ok(Some(t)),
-            Err(e) => { return Err(e.to_string()) }
-        }
+    let credentials_string= match read_to_string(file) {
+        Ok(c) => c,
+        Err(e) => return Err(format!("{}", e))
+    };
+
+    let credentials = credentials::Credentials::from_string(&credentials_string);
+
+    if credentials.profiles.contains_key(&profile) {
+        return Ok((credentials.profiles[&profile].access_key_id.clone(), credentials.profiles[&profile].secret_key.clone()))
+    } else {
+        return Err("Could not find any credentials. ".into())
     }
-    Ok(None)
 }
+
 
 // AWS_SHARED_CREDENTIALS_FILE
 
