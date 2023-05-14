@@ -48,6 +48,12 @@ async fn request(endpoint: String, region: String, method: Method, body: String)
         Method::PUT    => "PUT"
     };
 
+    let mut endpoint = endpoint;
+
+    if !endpoint.contains("://") {
+        endpoint = format!("https://{}", endpoint);
+    }
+
     // Create the request to sign
     let mut request: Request<String> = match Request::builder()
     .method(method)
