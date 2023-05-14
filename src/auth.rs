@@ -28,9 +28,6 @@ pub fn get_credentials() -> Result<(String, String), String> {
         None => "default".into()
     };
 
-
-//    eprintln!("Error: Missing ACCESS_KEY or SECRET_KEY. Please specify in environment variables. "); // TODO: Change when added args etc.
-
     let home = match &env.HOME {
         Some(h) => h,
         None => { return Err("Could not find home directory. ".into()) }

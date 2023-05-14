@@ -13,7 +13,6 @@ impl Credentials {
     pub fn from_string<'s>(string: &'s str) -> Self {
         fn get_map<'s>(block: &'s str) -> HashMap<String, String> {
             let mut map = HashMap::<String, String>::new();
-            let mut collect = false;
             let mut key = String::from("");
             let mut value = String::from("");
 
@@ -43,9 +42,15 @@ impl Credentials {
                             false
                         }
                     ).collect();
+                } else {
+                    value = value + "\n" + line;
                 }
-                value = value + line
             }
+
+            if !&key.is_empty() { // Register previous key value pair if new key detected
+                map.insert(key.clone(), value.clone());
+            }
+
             return map;
         }
 
@@ -57,7 +62,7 @@ impl Credentials {
                 if line.contains('=') {
                     let split: Vec<&str> = line.split('=').filter(|value| {
                         !value.trim().is_empty()
-                    }).collect();
+                    }).map(|value| value.trim()).collect();
 
                     if split.len() != 2 {
                         return Err("Warning: Possibly malformed credentials file; key value pair is missing. ".into())
