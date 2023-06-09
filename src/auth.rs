@@ -28,37 +28,14 @@ pub fn get_credentials() -> Result<(String, String), String> {
         None => "default".into()
     };
 
-    let home = match &env.HOME {
-        Some(h) => h,
-        None => { return Err("Could not find home directory. ".into()) }
-    };
+    let credentials = credentials::Credentials::get(&profile)?;
 
-    let path = format!("{}/{}", home, ".aws/credentials");
-    let file = match File::open(&path) {
-            Ok(f) => f,
-            Err(e) => { return Err(format!("Failed to read aws credentials file ({}), error was: {}", path, e))}
-    };
+    return Ok((credentials.access_key_id.clone(), credentials.secret_key.clone()))
 
-    let credentials_string= match read_to_string(file) {
-        Ok(c) => c,
-        Err(e) => return Err(format!("{}", e))
-    };
-
-    let credentials = credentials::Credentials::from_string(&credentials_string);
-
-    if credentials.profiles.contains_key(&profile) {
-        return Ok((credentials.profiles[&profile].access_key_id.clone(), credentials.profiles[&profile].secret_key.clone()))
-    } else {
-        return Err("Could not find any credentials. ".into())
-    }
 }
 
 
 // AWS_SHARED_CREDENTIALS_FILE
-
-// fn get_profile() {
-//     //load_toml("")
-// }
 
 // fn get_credentials() -> Result<(String, String), String> {
 //     // Checks environment variables and aws credentials file

@@ -1,100 +1,55 @@
 use std::collections::HashMap;
+use std::path::PathBuf;
 
-pub struct Profile {
+use crate::aws::config;
+use crate::config::ENV;
+
+pub struct Credentials {
     pub access_key_id: String, // TODO: Safer to use interface?
     pub secret_key: String
 }
 
-pub struct Credentials {
-    pub profiles: HashMap<String, Profile>
-}
-
 impl Credentials {
-    pub fn from_string<'s>(string: &'s str) -> Self {
-        fn get_map<'s>(block: &'s str) -> HashMap<String, String> {
-            let mut map = HashMap::<String, String>::new();
-            let mut key = String::from("");
-            let mut value = String::from("");
 
-            for line in block.lines() {
-                if line.contains("[") && line.contains("]") {
-                    if !&key.is_empty() { // Register previous key value pair if new key detected
-                        map.insert(key.clone(), value.clone());
-                        key = "".into();
-                        value = "".into();
-                    }
-                    let mut key_started = false;
-                    let mut key_completed = false;
-                    key = line.trim().chars().filter(|c|
-                        {
-                            if c == &'[' {
-                                key_started = true;
-                                return false
-                            }
-                            if key_started {
-                                if c == &']' { key_completed = true }
-                                if key_completed {
-                                    return false
-                                } else {
-                                    return true
-                                }
-                            }
-                            false
-                        }
-                    ).collect();
-                } else {
-                    value = value + "\n" + line;
-                }
-            }
+    pub fn get<'s>(profile: &'s str) -> Result<Self, String> { // May need to add profile: String
+        // Return credential struct for given profile
+        let home = match &ENV.HOME {
+            Some(h) => h,
+            None => { return Err("Could not find home directory. ".into()) }
+        };
+        let credential_vars = config::parse(PathBuf::from(format!("{}/{}", home, ".aws/credentials")), profile)?;
+        let access_key_id = match credential_vars.get("aws_access_key_id") {
+            Some(a) => String::from(a),
+            None => return Err("Could not retrieve AWS access key with given profile. ".into())
+        };
+        let secret_key  = match credential_vars.get("aws_secret_access_key") {
+            Some(s) => String::from(s),
+            None => return Err("Could not retrieve AWS secret key with given profile. ".into())
+        };
 
-            if !&key.is_empty() { // Register previous key value pair if new key detected
-                map.insert(key.clone(), value.clone());
-            }
-
-            return map;
-        }
-
-        fn parse_profile<'s>(block: &'s str) -> Result<Profile, String> {
-            let mut access_key_id = String::new();
-            let mut secret_key = String::new();
-
-            for line in block.lines() {
-                if line.contains('=') {
-                    let split: Vec<&str> = line.split('=').filter(|value| {
-                        !value.trim().is_empty()
-                    }).map(|value| value.trim()).collect();
-
-                    if split.len() != 2 {
-                        return Err("Warning: Possibly malformed credentials file; key value pair is missing. ".into())
-                    }
-
-                    if split[0] == "aws_access_key_id" {
-                        access_key_id = String::from(split[1]);
-                    } else if split[0] == "aws_secret_access_key" {
-                        secret_key = String::from(split[1]);
-                    }
-                }
-            }
-            if access_key_id.is_empty() && secret_key.is_empty() {
-                return Err("Warning: Possibly malformed credentials file; key value pair is missing. ".into())
-            }
-
-            return Ok( Profile { access_key_id, secret_key} )
-        }
-
-        let str_map = get_map(string);
-        let mut profiles = HashMap::<String, Profile>::new();
-        for (key, value) in str_map.iter() {
-                match parse_profile(&value) {
-                    Ok(p) => {
-                        profiles.insert(key.clone(), p);
-                    },
-                    Err(e) => {
-                        eprintln!("{}", e);
-                    }
-                }
-        }
-        return Credentials { profiles }
+        return Ok( Credentials { access_key_id, secret_key } )
     }
 
 }
+pub struct Profile {
+    region: String
+}
+
+impl Profile {
+    pub fn get<'s>(profile: &'s str) -> Result<Self, String> { // May need to add profile: String
+        // Return credential struct for given profile
+        let home = match &ENV.HOME {
+            Some(h) => h,
+            None => { return Err("Could not find home directory. ".into()) }
+        };
+        let profile_vars = config::parse(PathBuf::from(format!("{}/{}", home, ".aws/config")), profile)?;
+
+        return Ok(
+            Profile {
+                region: profile_vars.get("region").unwrap_or(&String::from("us-east-1")).into()
+            }
+        )
+    }
+
+}
+

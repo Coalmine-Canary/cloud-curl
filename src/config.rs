@@ -22,6 +22,7 @@ pub struct Env {
     pub SECRET_KEY: Option<String>,
     pub HOME: Option<String>
 }
+
 pub fn get_env() -> Env {
     let mut vars: HashMap<String, String> = env::vars().collect();
     let mut profile: Option<String> = None;
@@ -46,6 +47,7 @@ pub fn get_env() -> Env {
         HOME: home
     }
 }
+
 pub static ENV: Lazy<Env> = Lazy::new(||get_env());
 
 fn get_and_create_path() -> Result<PathBuf, String> {

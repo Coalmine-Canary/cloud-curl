@@ -75,7 +75,7 @@ async fn request(endpoint: String, region: String, method: Method, body: String)
 
     let signing_settings = SigningSettings::default();
     let signing_params = SigningParams::builder()
-        .access_key(credentials.0.as_str()) // TODO: Fetch from aws config
+        .access_key(credentials.0.as_str())
         .secret_key(credentials.1.as_str())
         .region(region.as_str()) // TODO: Variablise
         .service_name("es")
