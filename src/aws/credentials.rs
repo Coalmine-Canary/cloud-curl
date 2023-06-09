@@ -6,7 +6,8 @@ use crate::config::ENV;
 
 pub struct Credentials {
     pub access_key_id: String, // TODO: Safer to use interface?
-    pub secret_key: String
+    pub secret_key: String,
+    pub security_token: Option<String>
 }
 
 impl Credentials {
@@ -27,12 +28,18 @@ impl Credentials {
             None => return Err("Could not retrieve AWS secret key with given profile. ".into())
         };
 
-        return Ok( Credentials { access_key_id, secret_key } )
+        let mut security_token: Option<String> = None;
+
+        if credential_vars.contains_key("aws_security_token") {
+            security_token.replace(credential_vars.get("aws_security_token").unwrap().into());
+        }
+
+        return Ok( Credentials { access_key_id, secret_key, security_token } )
     }
 
 }
 pub struct Profile {
-    region: String
+    pub region: String
 }
 
 impl Profile {
@@ -42,7 +49,11 @@ impl Profile {
             Some(h) => h,
             None => { return Err("Could not find home directory. ".into()) }
         };
-        let profile_vars = config::parse(PathBuf::from(format!("{}/{}", home, ".aws/config")), profile)?;
+        let mut profile_vars = config::parse(PathBuf::from(format!("{}/{}", home, ".aws/config")), profile)?;
+
+        if ! profile_vars.contains_key("region") {
+            profile_vars = config::parse(PathBuf::from(format!("{}/{}", home, ".aws/config")), "default")?;
+        }
 
         return Ok(
             Profile {

@@ -15,7 +15,7 @@ pub fn parse<'s>(path: PathBuf, profile: &'s str) -> Result<HashMap<String, Stri
 fn get_profile<'s>(block: &'s str, profile: &'s str) -> Result<HashMap<String, String>, String> {
     // In profile/credential file, return fields
     let profile_blocks = get_map(block);
-    let block = match profile_blocks.get(profile as &str) {
+    let block = match profile_blocks.get(profile) {
         Some(b) => b,
         None => return Err("Profile could not be found. ".into()) // TODO: Review, more detail
     };
@@ -70,6 +70,7 @@ fn get_map<'s>(block: &'s str) -> HashMap<String, String> {
                     false
                 }
             ).collect();
+            key = key.replacen("profile ", "", 1);
         } else {
             value = value + "\n" + line;
         }

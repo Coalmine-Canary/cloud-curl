@@ -1,37 +1,32 @@
 use once_cell::sync::Lazy;
-use serde::Deserializer;
-use toml::Value;
-use toml::{Table, map::Map};
-
-
-use std::fs::File;
-use std::io::Read;
-use std::io::read_to_string;
-
-use std::path::Path;
+use hyper::Request;
 //use std::thread::__FastLocalKeyInner;
 
 use crate::config;
-use crate::aws::credentials;
+use crate::aws;
 
-pub fn get_credentials() -> Result<(String, String), String> {
-    // Checks environment variables and aws credentials file
+// pub fn get_credentials() -> Result<(String, String), String> {
+//     // Checks environment variables and aws credentials file -- will be the place to check cloud provider in use in the future
 
-    let env: &Lazy<config::Env> = &config::ENV;
+//     let env: &Lazy<config::Env> = &config::ENV;
 
-    if env.ACCESS_KEY.is_some() && env.SECRET_KEY.is_some() {
-        return Ok((env.ACCESS_KEY.clone().unwrap(), env.SECRET_KEY.clone().unwrap()))
-    }
+//     if env.ACCESS_KEY.is_some() && env.SECRET_KEY.is_some() {
+//         return Ok((env.ACCESS_KEY.clone().unwrap(), env.SECRET_KEY.clone().unwrap()))
+//     }
 
-    let profile = match &env.AWS_PROFILE {
-        Some(p) => p.clone(),
-        None => "default".into()
-    };
+//     let profile = match &env.AWS_PROFILE {
+//         Some(p) => p.clone(),
+//         None => "default".into()
+//     };
 
-    let credentials = credentials::Credentials::get(&profile)?;
+//     let credentials = credentials::Credentials::get(&profile)?;
+//     return Ok((credentials.access_key_id.clone(), credentials.secret_key.clone()))
+// }
 
-    return Ok((credentials.access_key_id.clone(), credentials.secret_key.clone()))
-
+pub fn sign_request(request: Request<String> ) -> Result<Request<String>, String> {
+    // Intermediary between requests and provider modules
+    // For now just passes to aws module
+    aws::signing::sign_request(request)
 }
 
 
